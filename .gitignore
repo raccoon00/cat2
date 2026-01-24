@@ -1,0 +1,5 @@
+cat2/.pio/
+cat2/.vscode/.browse.c_cpp.db*
+cat2/.vscode/c_cpp_properties.json
+cat2/.vscode/launch.json
+cat2/.vscode/ipch
