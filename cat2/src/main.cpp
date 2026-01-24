@@ -45,6 +45,15 @@ void handle_vent(char *s) {
   analogWrite(PWM_VENT, pwm);
 }
 
+void handle_servo(char *s) {
+  int pct = atoi(s);
+  int pwm = (pct * 255) / 100;
+  Serial.print(F("Servo angle: "));
+  Serial.println(pwm);
+
+  analogWrite(SERVO, pwm);
+}
+
 char *skip_init(char *s) {
   while (*s && *s != ' ' && *s != '\t') s++;
   while (*s == ' ' || *s == '\t') s++;
@@ -64,6 +73,8 @@ void handleLine(char *s) {
     handle_comp(skip_init(s));
   } else if (strncmp(s, "vent", 4) == 0) {
     handle_vent(skip_init(s));
+  } else if (strncmp(s, "servo", 5) == 0) {
+    handle_servo(skip_init(s));
   } else {
     Serial.println(F("ERR: no such device"));
   }
