@@ -1,4 +1,6 @@
 #include <Arduino.h>
+#include <SPI.h>
+
 
 int RELAY_COMPRESSOR = 43;
 int RELAY_VENT = 42;
@@ -14,8 +16,6 @@ int threshold_up = 700;
 int threshold_down = 300;
 int state = 0;
 int count = 0;
-
-
 
 bool handle_relay(char *s, uint8_t pin) {
   bool on;
@@ -87,6 +87,11 @@ void setup() {
   pinMode(RELAY_VENT, OUTPUT);
   pinMode(RELAY_COMPRESSOR, OUTPUT);
   pinMode(PWM_VENT, OUTPUT);
+
+  pinMode(22, OUTPUT);
+  digitalWrite(22, LOW);
+  // change spi pins
+  SPI.begin();
 
   digitalWrite(RELAY_VENT, RELAY_OFF);
   digitalWrite(RELAY_COMPRESSOR, RELAY_OFF);

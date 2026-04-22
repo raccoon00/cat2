@@ -17,6 +17,7 @@ Relay1 (Compressor) | Digital | 43 |
 Relay2 (Vent) | Digital | 42 | 
 Realy3 (Nothing) | Digital | 40 | 
 Realy4 (Nothing) | Digital | 41 | 
+MAX | SPI | CS:22, CLK:18, MISO:19, MOSI:23 | 
 
 
 
