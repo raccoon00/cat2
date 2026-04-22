@@ -28,9 +28,7 @@ void setup_hardware() {
   pinMode(SERVO, OUTPUT);
   pinMode(PWM_VENT, OUTPUT);
 
-  // Adafruit_MAX31865
-  thermo.begin(MAX31865_3WIRE);  // set to 2WIRE or 4WIRE as necessary
-
+  // Help output
   print_help();
 }
 
@@ -39,7 +37,6 @@ void loop_hardware() {
   serial_control_fetch();
 
   air_mass_fetch();
-  max_loop();
 }
 
 
@@ -133,7 +130,9 @@ void handleLine(char *s) {
   while (*s == ' ' || *s == '\t') s++;
   if (!*s) return;
 
-  if (strncmp(s, "comp", 4) == 0) {
+  if (strncmp(s, "help", 4) == 0 || strncmp(s, "?", 1) == 0) {
+    print_help();
+  } else if (strncmp(s, "comp", 4) == 0) {
     handle_comp(skip_init(s));
   } else if (strncmp(s, "vent", 4) == 0) {
     handle_vent(skip_init(s));
@@ -209,9 +208,9 @@ void air_mass_fetch() {
   unsigned long time = millis();
   if ((time - last_update) > 1000) {
     last_update = time;
-    Serial.println(count);
-    Serial.print("Analog A0: ");
-    Serial.println(data);
+    // Serial.println(count);
+    // Serial.print("Analog A0: ");
+    // Serial.println(data);
     count = 0;
   }
 }
