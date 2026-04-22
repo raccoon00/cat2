@@ -1,3 +1,6 @@
+#include <Adafruit_MAX31865.h>
+
+
 static const int RELAY_COMPRESSOR = 43;
 static const int RELAY_VENT = 42;
 static const int PWM_VENT = 44;
@@ -6,6 +9,11 @@ static const int SERVO = 45;
 
 static const int RELAY_OFF = HIGH;
 static const int RELAY_ON = LOW;
+
+
+Adafruit_MAX31865 thermo = Adafruit_MAX31865(22, 23, 19, 18);
+#define RREF      430.0
+#define RNOMINAL  100.0
 
 
 void setup_hardware() {
@@ -20,14 +28,65 @@ void setup_hardware() {
   pinMode(SERVO, OUTPUT);
   pinMode(PWM_VENT, OUTPUT);
 
+  // Adafruit_MAX31865
+  thermo.begin(MAX31865_3WIRE);  // set to 2WIRE or 4WIRE as necessary
+
   print_help();
 }
+
 
 void loop_hardware() {
   serial_control_fetch();
 
   air_mass_fetch();
+  max_loop();
 }
+
+
+void max_loop() {
+  static const int max_every = 2000;
+  static unsigned long last_time = 0;
+
+  unsigned long cur_time = millis();
+  if (cur_time - last_time < max_every) return;
+  last_time = cur_time;
+
+  uint16_t rtd = thermo.readRTD();
+
+  Serial.print("RTD value: "); Serial.println(rtd);
+  float ratio = rtd;
+  ratio /= 32768;
+  Serial.print("Ratio = "); Serial.println(ratio,8);
+  Serial.print("Resistance = "); Serial.println(RREF*ratio,8);
+  Serial.print("Temperature = "); Serial.println(thermo.temperature(RNOMINAL, RREF));
+
+  // Check and print any faults
+  uint8_t fault = thermo.readFault();
+  if (fault) {
+    Serial.print("Fault 0x"); Serial.println(fault, HEX);
+    if (fault & MAX31865_FAULT_HIGHTHRESH) {
+      Serial.println("RTD High Threshold"); 
+    }
+    if (fault & MAX31865_FAULT_LOWTHRESH) {
+      Serial.println("RTD Low Threshold"); 
+    }
+    if (fault & MAX31865_FAULT_REFINLOW) {
+      Serial.println("REFIN- > 0.85 x Bias"); 
+    }
+    if (fault & MAX31865_FAULT_REFINHIGH) {
+      Serial.println("REFIN- < 0.85 x Bias - FORCE- open"); 
+    }
+    if (fault & MAX31865_FAULT_RTDINLOW) {
+      Serial.println("RTDIN- < 0.85 x Bias - FORCE- open"); 
+    }
+    if (fault & MAX31865_FAULT_OVUV) {
+      Serial.println("Under/Over voltage"); 
+    }
+    thermo.clearFault();
+  }
+  Serial.println();
+}
+
 
 void serial_control_fetch() {
   static const size_t SERIAL_CONTROL_BUF_SIZE = 32;
@@ -53,6 +112,7 @@ void serial_control_fetch() {
   }
 }
 
+
 void print_help() {
   Serial.println("Available commands:");
   Serial.println(" - vent on/off/%");
@@ -61,11 +121,13 @@ void print_help() {
   Serial.println("");
 }
 
+
 char *skip_init(char *s) {
   while (*s && *s != ' ' && *s != '\t') s++;
   while (*s == ' ' || *s == '\t') s++;
   return s;
 }
+
 
 void handleLine(char *s) {
   while (*s == ' ' || *s == '\t') s++;
@@ -82,6 +144,7 @@ void handleLine(char *s) {
   }
 }
 
+
 bool handle_relay(char *s, uint8_t pin) {
   bool on;
   if (strncmp(s, "on", 2) == 0) on = true;
@@ -95,10 +158,12 @@ bool handle_relay(char *s, uint8_t pin) {
   return true;
 }
 
+
 void handle_comp(char *s) {
   bool handled = handle_relay(s, RELAY_VENT);
   if (handled) return;
 }
+
 
 void handle_vent(char *s) {
   bool handled = handle_relay(s, RELAY_VENT);
@@ -115,6 +180,7 @@ void handle_vent(char *s) {
   analogWrite(PWM_VENT, pwm);
 }
 
+
 void handle_servo(char *s) {
   int pct = atoi(s);
   int pwm = (pct * 255) / 100;
@@ -123,6 +189,7 @@ void handle_servo(char *s) {
 
   analogWrite(SERVO, pwm);
 }
+
 
 void air_mass_fetch() {
   static unsigned long last_update = 0;
