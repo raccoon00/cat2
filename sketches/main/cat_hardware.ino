@@ -1,9 +1,14 @@
 #include <Adafruit_MAX31865.h>
+#include <Wire.h>
+#include <GyverDS18.h>
+
+
 
 
 static const int RELAY_COMPRESSOR = 43;
 static const int RELAY_VENT = 42;
 static const int PWM_VENT = 44;
+static const int ONE_WIRE_BUS = 46;
 
 static const int SERVO = 45;
 
@@ -11,12 +16,30 @@ static const int RELAY_OFF = HIGH;
 static const int RELAY_ON = LOW;
 
 
-Adafruit_MAX31865 thermo = Adafruit_MAX31865(22, 23, 19, 18);
-#define RREF      430.0
-#define RNOMINAL  100.0
+static const int TEMP_BUF_SIZE = 32;
+double temp_buf[TEMP_BUF_SIZE];
+int temp_buf_size = 0;
+int temp_buf_cur = 0;
+int temp_buf_prev = -1;
+
+GyverDS18Single temp_ds(A10);
+
+
+void fetch_temp() { 
+  if (temp_buf_prev != -1) {
+    Serial.print("Temp: ");
+    Serial.println(temp_buf[temp_buf_prev]);
+  }
+}
 
 
 void setup_hardware() {
+  // I2C
+  Wire.begin();
+
+  // 1-WIRE
+  temp_ds.setResolution(12);
+
   // Relays
   pinMode(RELAY_VENT, OUTPUT);
   pinMode(RELAY_COMPRESSOR, OUTPUT);
@@ -37,51 +60,14 @@ void loop_hardware() {
   serial_control_fetch();
 
   air_mass_fetch();
-}
 
-
-void max_loop() {
-  static const int max_every = 2000;
-  static unsigned long last_time = 0;
-
-  unsigned long cur_time = millis();
-  if (cur_time - last_time < max_every) return;
-  last_time = cur_time;
-
-  uint16_t rtd = thermo.readRTD();
-
-  Serial.print("RTD value: "); Serial.println(rtd);
-  float ratio = rtd;
-  ratio /= 32768;
-  Serial.print("Ratio = "); Serial.println(ratio,8);
-  Serial.print("Resistance = "); Serial.println(RREF*ratio,8);
-  Serial.print("Temperature = "); Serial.println(thermo.temperature(RNOMINAL, RREF));
-
-  // Check and print any faults
-  uint8_t fault = thermo.readFault();
-  if (fault) {
-    Serial.print("Fault 0x"); Serial.println(fault, HEX);
-    if (fault & MAX31865_FAULT_HIGHTHRESH) {
-      Serial.println("RTD High Threshold"); 
-    }
-    if (fault & MAX31865_FAULT_LOWTHRESH) {
-      Serial.println("RTD Low Threshold"); 
-    }
-    if (fault & MAX31865_FAULT_REFINLOW) {
-      Serial.println("REFIN- > 0.85 x Bias"); 
-    }
-    if (fault & MAX31865_FAULT_REFINHIGH) {
-      Serial.println("REFIN- < 0.85 x Bias - FORCE- open"); 
-    }
-    if (fault & MAX31865_FAULT_RTDINLOW) {
-      Serial.println("RTDIN- < 0.85 x Bias - FORCE- open"); 
-    }
-    if (fault & MAX31865_FAULT_OVUV) {
-      Serial.println("Under/Over voltage"); 
-    }
-    thermo.clearFault();
+  if (temp_ds.tick() == 0) {
+    double data = temp_ds.getTemp();
+    temp_buf[temp_buf_cur] = data;
+    temp_buf_prev = temp_buf_cur;
+    temp_buf_cur = (temp_buf_cur + 1) % TEMP_BUF_SIZE;
+    if (temp_buf_size < TEMP_BUF_SIZE) temp_buf_size++;
   }
-  Serial.println();
 }
 
 
@@ -115,7 +101,46 @@ void print_help() {
   Serial.println(" - vent on/off/%");
   Serial.println(" - servo %");
   Serial.println(" - comp on/off");
+  Serial.println(" - scan");
+  Serial.println(" - temp");
   Serial.println("");
+}
+
+
+void scan_i2c() {
+  int nDevices = 0;
+
+  Serial.println("Scanning...");
+
+  for (byte address = 1; address < 127; ++address) {
+    // The i2c_scanner uses the return value of
+    // the Wire.endTransmission to see if
+    // a device did acknowledge to the address.
+    Wire.beginTransmission(address);
+    byte error = Wire.endTransmission();
+
+    if (error == 0) {
+      Serial.print("I2C device found at address 0x");
+      if (address < 16) {
+        Serial.print("0");
+      }
+      Serial.print(address, HEX);
+      Serial.println("  !");
+
+      ++nDevices;
+    } else if (error == 4) {
+      Serial.print("Unknown error at address 0x");
+      if (address < 16) {
+        Serial.print("0");
+      }
+      Serial.println(address, HEX);
+    }
+  }
+  if (nDevices == 0) {
+    Serial.println("No I2C devices found\n");
+  } else {
+    Serial.println("done\n");
+  }
 }
 
 
@@ -138,6 +163,10 @@ void handleLine(char *s) {
     handle_vent(skip_init(s));
   } else if (strncmp(s, "servo", 5) == 0) {
     handle_servo(skip_init(s));
+  } else if (strncmp(s, "scan", 4) == 0) {
+    scan_i2c();
+  } else if (strncmp(s, "temp", 4) == 0) {
+    fetch_temp();
   } else {
     Serial.println(F("ERR: no such device"));
   }
