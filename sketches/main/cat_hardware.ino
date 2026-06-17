@@ -1,8 +1,7 @@
 #include <Adafruit_MAX31865.h>
 #include <Wire.h>
 #include <GyverDS18.h>
-
-
+#include <Adafruit_VL53L0X.h>
 
 
 static const int RELAY_COMPRESSOR = 43;
@@ -24,6 +23,8 @@ int temp_buf_prev = -1;
 
 GyverDS18Single temp_ds(A10);
 
+Adafruit_VL53L0X lox = Adafruit_VL53L0X();
+
 
 void fetch_temp() { 
   if (temp_buf_prev != -1) {
@@ -39,6 +40,10 @@ void setup_hardware() {
 
   // 1-WIRE
   temp_ds.setResolution(12);
+
+  if (!lox.begin()) {
+    Serial.println("Не удалось обнаружить LV53");
+  }
 
   // Relays
   pinMode(RELAY_VENT, OUTPUT);
@@ -57,6 +62,10 @@ void setup_hardware() {
 
 
 void loop_hardware() {
+  static unsigned long last_millis = 0;
+  unsigned long delta = millis() - last_millis;
+  last_millis = millis();
+
   serial_control_fetch();
 
   air_mass_fetch();
@@ -67,6 +76,24 @@ void loop_hardware() {
     temp_buf_prev = temp_buf_cur;
     temp_buf_cur = (temp_buf_cur + 1) % TEMP_BUF_SIZE;
     if (temp_buf_size < TEMP_BUF_SIZE) temp_buf_size++;
+  }
+
+  
+  static int vlxdelay = 0;
+  vlxdelay -= delta;
+  if (vlxdelay <= 0) {
+    vlxdelay = 1000;
+
+    VL53L0X_RangingMeasurementData_t measure;
+    lox.rangingTest(&measure, false); // Получение данных о расстоянии
+
+    if (measure.RangeStatus != 4) { // Проверка успешности измерений
+      // Serial.print("Расстояние: ");
+      // Serial.print(measure.RangeMilliMeter);
+      // Serial.println(" мм");
+    } else {
+      // Serial.println("Ошибка измерения");
+    }
   }
 }
 
@@ -179,11 +206,23 @@ bool handle_relay(char *s, uint8_t pin) {
   else if (strncmp(s, "off", 3) == 0) on = false;
   else return false;
 
-  digitalWrite(pin, on ? RELAY_ON : RELAY_OFF);
+  switch_relay(pin, on);
 
-  Serial.print(F("Vent Relay "));
-  Serial.println(on ? F("on") : F("off"));
   return true;
+}
+
+
+void switch_relay(uint8_t pin, bool on) {
+  if (pin == RELAY_VENT) {
+    Serial.print(F("Vent Relay: "));
+  } else if (pin == RELAY_COMPRESSOR) {
+    Serial.print(F("Compressor Relay: "));
+  } else {
+    Serial.print(F("Unhandled Relay, nothing is done"));
+    return;
+  }
+  digitalWrite(pin, on ? RELAY_ON : RELAY_OFF);
+  Serial.println(on ? F("on") : F("off"));
 }
 
 
