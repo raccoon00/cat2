@@ -9,7 +9,7 @@ Carel | UART | TX:- RX:- | Не подключаем к контроллеру
 VL53L0X | I2C | SDA:20 SCL:21 | 20 - зеленый, 21 - красный
 GY906 BCC | I2C | SDA:20 SCL:21 | 20 - зеленый, 21 - красный
 DS18B20 | 1WIRE | A10 | 
-NRG 118 | PWM | 44 | 
+NRG 118 | PWM | 9 | 
 SERVO | PWM | 45 | Черный
 Ротаметры | Analog | A0 A1 | Фиолетовый, Коричневый
 SPKT | Analog | - | 
