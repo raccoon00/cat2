@@ -1,6 +1,5 @@
 #include <Adafruit_MAX31865.h>
 #include <Wire.h>
-#include <GyverDS18.h>
 #include <Servo.h>
 #include <SoftWire.h>
 
@@ -21,22 +20,6 @@ static const int RELAY_OFF = HIGH;
 static const int RELAY_ON = LOW;
 
 
-static const int TEMP_BUF_SIZE = 32;
-double temp_buf[TEMP_BUF_SIZE];
-int temp_buf_size = 0;
-int temp_buf_cur = 0;
-int temp_buf_prev = -1;
-
-GyverDS18Single temp_ds(A10);
-
-void fetch_temp() { 
-  if (temp_buf_prev != -1) {
-    Serial.print("Temp: ");
-    Serial.println(temp_buf[temp_buf_prev]);
-  }
-}
-
-
 void setup_hardware() {
   // I2C
   Wire.begin();
@@ -45,7 +28,7 @@ void setup_hardware() {
   setup_vl53l0x();
 
   // 1-WIRE
-  temp_ds.setResolution(12);
+  setup_ds18b20();
 
   // Relays
   pinMode(RELAY_VENT, OUTPUT);
@@ -68,16 +51,9 @@ void loop_hardware() {
   // serial_control_fetch();
 
   air_mass_fetch();
+  loop_ds18b20();
   loop_gy906();
   loop_vl53l0x();
-
-  if (temp_ds.tick() == 0) {
-    double data = temp_ds.getTemp();
-    temp_buf[temp_buf_cur] = data;
-    temp_buf_prev = temp_buf_cur;
-    temp_buf_cur = (temp_buf_cur + 1) % TEMP_BUF_SIZE;
-    if (temp_buf_size < TEMP_BUF_SIZE) temp_buf_size++;
-  }
 }
 
 

@@ -17,8 +17,9 @@ void loop_nextion() {
   time -= delta;
 
   if (time <= 0.0) {
-    if (temp_buf_prev != -1) {
-      nex.writeNum("fTIn.val", temp_buf[temp_buf_prev]);
+    double ds18b20_temp_c;
+    if (ds18b20_get_average(ds18b20_temp_c)) {
+      nex.writeNum("fTIn.val", (int)round(ds18b20_temp_c));
     }
 
     uint8_t gy906_channel;
