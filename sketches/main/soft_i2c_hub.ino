@@ -42,6 +42,27 @@ bool soft_i2c_ping(uint8_t addr) {
   return soft_i2c.endTransmission() == 0;
 }
 
+void scan_soft_i2c_bus() {
+  int nDevices = 0;
+
+  Serial.println(F("Scanning raw Soft I2C bus..."));
+
+  for (uint8_t addr = 1; addr < 127; addr++) {
+    if (soft_i2c_ping(addr)) {
+      Serial.print(F("Soft I2C device found at 0x"));
+      if (addr < 16) Serial.print(F("0"));
+      Serial.println(addr, HEX);
+      nDevices++;
+    }
+  }
+
+  if (nDevices == 0) {
+    Serial.println(F("No devices found on raw Soft I2C bus"));
+  } else {
+    Serial.println(F("Raw Soft I2C bus scan done"));
+  }
+}
+
 void scan_soft_i2c_channel(uint8_t channel) {
   Serial.print(F("Soft I2C channel "));
   Serial.print(channel);

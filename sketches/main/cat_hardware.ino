@@ -23,6 +23,7 @@ static const int RELAY_ON = LOW;
 void setup_hardware() {
   // I2C
   setup_soft_i2c_hub();
+  scan_soft_i2c_bus();
   setup_gy906();
   setup_vl53l0x();
 
@@ -92,6 +93,7 @@ void print_help() {
   Serial.println(" - comp on/off");
   Serial.println(" - scan");
   Serial.println(" - scan-soft");
+  Serial.println(" - scan-soft-bus");
   Serial.println(" - temp");
   Serial.println(" - vl53");
   Serial.println(" - air");
@@ -155,6 +157,8 @@ void handleLine(char *s) {
     handle_vent(skip_init(s));
   } else if (strncmp(s, "servo", 5) == 0) {
     handle_servo(skip_init(s));
+  } else if (strncmp(s, "scan-soft-bus", 13) == 0) {
+    scan_soft_i2c_bus();
   } else if (strncmp(s, "scan-soft", 9) == 0) {
     scan_soft_i2c_hub();
   } else if (strncmp(s, "scan", 4) == 0) {
