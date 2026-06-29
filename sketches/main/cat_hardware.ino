@@ -22,7 +22,6 @@ static const int RELAY_ON = LOW;
 
 void setup_hardware() {
   // I2C
-  Wire.begin();
   setup_soft_i2c_hub();
   setup_gy906();
   setup_vl53l0x();

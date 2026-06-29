@@ -95,6 +95,8 @@ void find_gy906_sensors_on_all_channels() {
     gy906_object_c[channel] = 0.0;
     gy906_last_read_ms[channel] = 0;
 
+    scan_soft_i2c_channel(channel);
+
     if (select_i2c_hub_channel(channel) && soft_i2c_ping(GY906_ADDR)) {
       gy906_sensor_on_channel[channel] = true;
       Serial.print(F("  GY-906 / MLX90614 found on channel "));
