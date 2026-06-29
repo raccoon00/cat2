@@ -3,6 +3,11 @@
 #include <GyverDS18.h>
 #include <Adafruit_VL53L0X.h>
 #include <Servo.h>
+#include <SoftWire.h>
+
+
+#define SDA_PIN 21
+#define SCL_PIN 20
 
 
 static const int RELAY_COMPRESSOR = 43;
