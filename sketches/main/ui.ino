@@ -57,8 +57,8 @@ void trigger4() {
   if (val < 0) {
     val = 0;
   }
-  if (val > 255) {
-    val = 255;
+  if (val > 100) {
+    val = 100;
   }
   val = 100 - val;
 
@@ -70,6 +70,24 @@ void trigger4() {
 
 void trigger5() {
   Serial.println("FLOW DIRECTION CHANGED!");
+
+  int val = nex.readNumber("sGate.val");
+  if (val == 777777) {
+    Serial.println("Error reading servo number");
+    return;
+  }
+  
+  if (val < 0) {
+    val = 0;
+  }
+  if (val > 100) {
+    val = 100;
+  }
+  val = 23 + (val * (70 - 23) / 100);
+
+  // val = 100 - val;
+
+  set_servo(val);
 }
 
 void trigger6() {

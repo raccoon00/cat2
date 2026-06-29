@@ -2,6 +2,7 @@
 #include <Wire.h>
 #include <GyverDS18.h>
 #include <Adafruit_VL53L0X.h>
+#include <Servo.h>
 
 
 static const int RELAY_COMPRESSOR = 43;
@@ -9,6 +10,7 @@ static const int RELAY_VENT = 42;
 static const int PWM_VENT = 44;
 static const int ONE_WIRE_BUS = 46;
 
+Servo servo;
 static const int SERVO = 45;
 
 static const int RELAY_OFF = HIGH;
@@ -53,7 +55,8 @@ void setup_hardware() {
   digitalWrite(RELAY_COMPRESSOR, RELAY_OFF);
 
   // PWM
-  pinMode(SERVO, OUTPUT);
+  servo.attach(SERVO);
+  set_servo(46);
   pinMode(PWM_VENT, OUTPUT);
 
   // Help output
@@ -66,7 +69,7 @@ void loop_hardware() {
   unsigned long delta = millis() - last_millis;
   last_millis = millis();
 
-  serial_control_fetch();
+  // serial_control_fetch();
 
   air_mass_fetch();
 
@@ -250,11 +253,17 @@ void handle_vent(char *s) {
 
 void handle_servo(char *s) {
   int pct = atoi(s);
-  int pwm = (pct * 255) / 100;
-  Serial.print(F("Servo angle: "));
-  Serial.println(pwm);
+  Serial.print(F("Servo pct: "));
+  Serial.println(pct);
 
-  analogWrite(SERVO, pwm);
+  set_servo(pct);
+}
+
+
+void set_servo(int angle) {
+  servo.write(angle);
+  Serial.print(F("Angle written: "));
+  Serial.println(angle);
 }
 
 
