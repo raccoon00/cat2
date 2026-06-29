@@ -44,6 +44,8 @@ void fetch_temp() {
 void setup_hardware() {
   // I2C
   Wire.begin();
+  setup_soft_i2c_hub();
+  setup_gy906();
 
   // 1-WIRE
   temp_ds.setResolution(12);
@@ -77,6 +79,7 @@ void loop_hardware() {
   // serial_control_fetch();
 
   air_mass_fetch();
+  loop_gy906();
 
   if (temp_ds.tick() == 0) {
     double data = temp_ds.getTemp();
@@ -137,6 +140,7 @@ void print_help() {
   Serial.println(" - servo %");
   Serial.println(" - comp on/off");
   Serial.println(" - scan");
+  Serial.println(" - scan-soft");
   Serial.println(" - temp");
   Serial.println("");
 }
@@ -198,6 +202,8 @@ void handleLine(char *s) {
     handle_vent(skip_init(s));
   } else if (strncmp(s, "servo", 5) == 0) {
     handle_servo(skip_init(s));
+  } else if (strncmp(s, "scan-soft", 9) == 0) {
+    scan_soft_i2c_hub();
   } else if (strncmp(s, "scan", 4) == 0) {
     scan_i2c();
   } else if (strncmp(s, "temp", 4) == 0) {

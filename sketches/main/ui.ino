@@ -21,6 +21,17 @@ void loop_nextion() {
       nex.writeNum("fTIn.val", temp_buf[temp_buf_prev]);
     }
 
+    uint8_t gy906_channel;
+    float gy906_ambient;
+    float gy906_object;
+
+    if (gy906_get_nth_sensor(0, gy906_channel, gy906_ambient, gy906_object)) {
+      nex.writeNum("fTSkin1.val", (int)round(gy906_object));
+    }
+    if (gy906_get_nth_sensor(1, gy906_channel, gy906_ambient, gy906_object)) {
+      nex.writeNum("fTSkin2.val", (int)round(gy906_object));
+    }
+
     time = 1000.0;
   }
 }
