@@ -1,7 +1,6 @@
 #include <Adafruit_MAX31865.h>
 #include <Wire.h>
 #include <GyverDS18.h>
-#include <Adafruit_VL53L0X.h>
 #include <Servo.h>
 #include <SoftWire.h>
 
@@ -30,9 +29,6 @@ int temp_buf_prev = -1;
 
 GyverDS18Single temp_ds(A10);
 
-Adafruit_VL53L0X lox = Adafruit_VL53L0X();
-
-
 void fetch_temp() { 
   if (temp_buf_prev != -1) {
     Serial.print("Temp: ");
@@ -46,13 +42,10 @@ void setup_hardware() {
   Wire.begin();
   setup_soft_i2c_hub();
   setup_gy906();
+  setup_vl53l0x();
 
   // 1-WIRE
   temp_ds.setResolution(12);
-
-  if (!lox.begin()) {
-    Serial.println("Не удалось обнаружить LV53");
-  }
 
   // Relays
   pinMode(RELAY_VENT, OUTPUT);
@@ -72,14 +65,11 @@ void setup_hardware() {
 
 
 void loop_hardware() {
-  static unsigned long last_millis = 0;
-  unsigned long delta = millis() - last_millis;
-  last_millis = millis();
-
   // serial_control_fetch();
 
   air_mass_fetch();
   loop_gy906();
+  loop_vl53l0x();
 
   if (temp_ds.tick() == 0) {
     double data = temp_ds.getTemp();
@@ -88,25 +78,8 @@ void loop_hardware() {
     temp_buf_cur = (temp_buf_cur + 1) % TEMP_BUF_SIZE;
     if (temp_buf_size < TEMP_BUF_SIZE) temp_buf_size++;
   }
-
-  
-  static int vlxdelay = 0;
-  vlxdelay -= delta;
-  if (vlxdelay <= 0) {
-    vlxdelay = 1000;
-
-    VL53L0X_RangingMeasurementData_t measure;
-    lox.rangingTest(&measure, false); // Получение данных о расстоянии
-
-    if (measure.RangeStatus != 4) { // Проверка успешности измерений
-      // Serial.print("Расстояние: ");
-      // Serial.print(measure.RangeMilliMeter);
-      // Serial.println(" мм");
-    } else {
-      // Serial.println("Ошибка измерения");
-    }
-  }
 }
+
 
 
 void serial_control_fetch() {
@@ -142,6 +115,7 @@ void print_help() {
   Serial.println(" - scan");
   Serial.println(" - scan-soft");
   Serial.println(" - temp");
+  Serial.println(" - vl53");
   Serial.println("");
 }
 
@@ -208,6 +182,8 @@ void handleLine(char *s) {
     scan_i2c();
   } else if (strncmp(s, "temp", 4) == 0) {
     fetch_temp();
+  } else if (strncmp(s, "vl53", 4) == 0) {
+    fetch_vl53l0x();
   } else {
     Serial.println(F("ERR: no such device"));
   }

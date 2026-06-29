@@ -32,6 +32,17 @@ void loop_nextion() {
       nex.writeNum("fTSkin2.val", (int)round(gy906_object));
     }
 
+    uint8_t vl53l0x_channel;
+    uint16_t vl53l0x_distance;
+    uint8_t vl53l0x_status;
+
+    if (vl53l0x_get_nth_sensor(0, vl53l0x_channel, vl53l0x_distance, vl53l0x_status) && vl53l0x_status == 0) {
+      nex.writeNum("fLSkin1.val", vl53l0x_distance);
+    }
+    if (vl53l0x_get_nth_sensor(1, vl53l0x_channel, vl53l0x_distance, vl53l0x_status) && vl53l0x_status == 0) {
+      nex.writeNum("fLSkin2.val", vl53l0x_distance);
+    }
+
     time = 1000.0;
   }
 }
