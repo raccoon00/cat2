@@ -30,6 +30,9 @@ void setup_hardware() {
   // 1-WIRE
   setup_ds18b20();
 
+  // Analog air flow sensors
+  setup_air_flow();
+
   // Relays
   pinMode(RELAY_VENT, OUTPUT);
   pinMode(RELAY_COMPRESSOR, OUTPUT);
@@ -50,7 +53,7 @@ void setup_hardware() {
 void loop_hardware() {
   // serial_control_fetch();
 
-  air_mass_fetch();
+  loop_air_flow();
   loop_ds18b20();
   loop_gy906();
   loop_vl53l0x();
@@ -92,6 +95,7 @@ void print_help() {
   Serial.println(" - scan-soft");
   Serial.println(" - temp");
   Serial.println(" - vl53");
+  Serial.println(" - air");
   Serial.println("");
 }
 
@@ -160,6 +164,8 @@ void handleLine(char *s) {
     fetch_temp();
   } else if (strncmp(s, "vl53", 4) == 0) {
     fetch_vl53l0x();
+  } else if (strncmp(s, "air", 3) == 0) {
+    fetch_air_flow();
   } else {
     Serial.println(F("ERR: no such device"));
   }
@@ -227,32 +233,6 @@ void set_servo(int angle) {
   servo.write(angle);
   Serial.print(F("Angle written: "));
   Serial.println(angle);
-}
-
-
-void air_mass_fetch() {
-  static unsigned long last_update = 0;
-  static int threshold_up = 700;
-  static int threshold_down = 300;
-  static int state = 0;
-  static int count = 0;
-
-  int data = analogRead(A0);
-  if (state == 0 && data > threshold_up) {
-    state = 1;
-    count++;
-  } else if (state == 1 && data < threshold_down) {
-    state = 0;
-  }
-
-  unsigned long time = millis();
-  if ((time - last_update) > 1000) {
-    last_update = time;
-    // Serial.println(count);
-    // Serial.print("Analog A0: ");
-    // Serial.println(data);
-    count = 0;
-  }
 }
 
 

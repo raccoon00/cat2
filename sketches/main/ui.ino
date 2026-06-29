@@ -44,6 +44,14 @@ void loop_nextion() {
       nex.writeNum("fLSkin2.val", vl53l0x_distance);
     }
 
+    double air_flow_volume;
+    if (air_flow_get_volume(0, air_flow_volume)) {
+      nex.writeNum("fVolume1.val", (int)round(air_flow_volume));
+    }
+    if (air_flow_get_volume(1, air_flow_volume)) {
+      nex.writeNum("fVolume2.val", (int)round(air_flow_volume));
+    }
+
     time = 1000.0;
   }
 }
