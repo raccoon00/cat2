@@ -10,7 +10,7 @@
 
 static const int RELAY_COMPRESSOR = 43;
 static const int RELAY_VENT = 42;
-static const int PWM_VENT = 44;
+static const int PWM_VENT = 9;
 static const int ONE_WIRE_BUS = 46;
 
 Servo servo;
