@@ -122,8 +122,12 @@ void loop_gy906() {
   last_poll = now;
 
   bool anySensor = false;
+  static uint8_t next_channel = 0;
 
-  for (uint8_t channel = 0; channel < GY906_CHANNEL_COUNT; channel++) {
+  for (uint8_t attempts = 0; attempts < GY906_CHANNEL_COUNT; attempts++) {
+    uint8_t channel = next_channel;
+    next_channel = (next_channel + 1) % GY906_CHANNEL_COUNT;
+
     if (!gy906_sensor_on_channel[channel]) continue;
 
     anySensor = true;
@@ -134,7 +138,7 @@ void loop_gy906() {
 
     if (!select_i2c_hub_channel(channel)) {
       Serial.println(F("failed to select hub channel"));
-      continue;
+      break;
     }
 
     float ambientC;
@@ -153,7 +157,7 @@ void loop_gy906() {
       Serial.println(F("read failed"));
     }
 
-    delay(100);
+    break;
   }
 
   if (!anySensor && now - last_rescan > 10000) {

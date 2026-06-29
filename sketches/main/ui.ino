@@ -9,14 +9,11 @@ void setup_nextion() {
 void loop_nextion() {
   nex.NextionListen();
 
-  static int time = 0.0;
-  static unsigned long last_time = millis();
+  static unsigned long last_update = 0;
+  unsigned long now = millis();
 
-  unsigned long delta = millis() - last_time;
-  last_time = millis();
-  time -= delta;
-
-  if (time <= 0.0) {
+  if (now - last_update >= 1000) {
+    last_update = now;
     double ds18b20_temp_c;
     if (ds18b20_get_average(ds18b20_temp_c)) {
       nex.writeNum("fTIn.val", (int)round(ds18b20_temp_c));
@@ -52,7 +49,6 @@ void loop_nextion() {
       nex.writeNum("fVolume2.val", (int)round(air_flow_volume));
     }
 
-    time = 1000.0;
   }
 }
 

@@ -199,7 +199,7 @@ void switch_relay(uint8_t pin, bool on) {
 
 
 void handle_comp(char *s) {
-  bool handled = handle_relay(s, RELAY_VENT);
+  bool handled = handle_relay(s, RELAY_COMPRESSOR);
   if (handled) return;
 }
 

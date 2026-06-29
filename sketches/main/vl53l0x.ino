@@ -490,28 +490,39 @@ void SoftVL53L0X::writeReg32Bit(uint8_t reg, uint32_t value)
 // Read an 8-bit register
 uint8_t SoftVL53L0X::readReg(uint8_t reg)
 {
-  uint8_t value;
+  uint8_t value = 0;
 
   soft_i2c.beginTransmission(address);
   soft_i2c.write(reg);
   last_status = soft_i2c.endTransmission();
+  if (last_status != 0) return value;
 
-  soft_i2c.requestFrom(address, (uint8_t)1);
+  uint8_t bytesRead = soft_i2c.requestFrom(address, (uint8_t)1);
+  if (bytesRead != 1) {
+    last_status = 4;
+    return value;
+  }
+
   value = soft_i2c.read();
-
   return value;
 }
 
 // Read a 16-bit register
 uint16_t SoftVL53L0X::readReg16Bit(uint8_t reg)
 {
-  uint16_t value;
+  uint16_t value = 0;
 
   soft_i2c.beginTransmission(address);
   soft_i2c.write(reg);
   last_status = soft_i2c.endTransmission();
+  if (last_status != 0) return value;
 
-  soft_i2c.requestFrom(address, (uint8_t)2);
+  uint8_t bytesRead = soft_i2c.requestFrom(address, (uint8_t)2);
+  if (bytesRead != 2) {
+    last_status = 4;
+    return value;
+  }
+
   value  = (uint16_t)soft_i2c.read() << 8; // value high byte
   value |=           soft_i2c.read();      // value low byte
 
@@ -521,13 +532,19 @@ uint16_t SoftVL53L0X::readReg16Bit(uint8_t reg)
 // Read a 32-bit register
 uint32_t SoftVL53L0X::readReg32Bit(uint8_t reg)
 {
-  uint32_t value;
+  uint32_t value = 0;
 
   soft_i2c.beginTransmission(address);
   soft_i2c.write(reg);
   last_status = soft_i2c.endTransmission();
+  if (last_status != 0) return value;
 
-  soft_i2c.requestFrom(address, (uint8_t)4);
+  uint8_t bytesRead = soft_i2c.requestFrom(address, (uint8_t)4);
+  if (bytesRead != 4) {
+    last_status = 4;
+    return value;
+  }
+
   value  = (uint32_t)soft_i2c.read() << 24; // value highest byte
   value |= (uint32_t)soft_i2c.read() << 16;
   value |= (uint16_t)soft_i2c.read() <<  8;
@@ -558,8 +575,17 @@ void SoftVL53L0X::readMulti(uint8_t reg, uint8_t * dst, uint8_t count)
   soft_i2c.beginTransmission(address);
   soft_i2c.write(reg);
   last_status = soft_i2c.endTransmission();
+  if (last_status != 0) {
+    while (count-- > 0) *(dst++) = 0;
+    return;
+  }
 
-  soft_i2c.requestFrom(address, count);
+  uint8_t bytesRead = soft_i2c.requestFrom(address, count);
+  if (bytesRead != count) {
+    last_status = 4;
+    while (count-- > 0) *(dst++) = 0;
+    return;
+  }
 
   while (count-- > 0)
   {
@@ -1270,8 +1296,12 @@ void loop_vl53l0x() {
   last_poll = now;
 
   bool anySensor = false;
+  static uint8_t next_channel = 0;
 
-  for (uint8_t channel = 0; channel < VL53L0X_CHANNEL_COUNT; channel++) {
+  for (uint8_t attempts = 0; attempts < VL53L0X_CHANNEL_COUNT; attempts++) {
+    uint8_t channel = next_channel;
+    next_channel = (next_channel + 1) % VL53L0X_CHANNEL_COUNT;
+
     if (!vl53l0x_sensor_on_channel[channel]) continue;
 
     anySensor = true;
@@ -1281,26 +1311,34 @@ void loop_vl53l0x() {
     Serial.print(F(": "));
 
     if (!select_i2c_hub_channel(channel)) {
+      vl53l0x_range_status[channel] = 2;
+      vl53l0x_last_read_ms[channel] = now;
       Serial.println(F("failed to select hub channel"));
-      continue;
+      break;
     }
 
     uint16_t distance = vl53l0x_sensors[channel].readRangeSingleMillimeters();
     bool timeout = vl53l0x_sensors[channel].timeoutOccurred();
+    uint8_t i2cStatus = vl53l0x_sensors[channel].last_status;
 
-    vl53l0x_distance_mm[channel] = distance;
-    vl53l0x_range_status[channel] = timeout ? 1 : 0;
     vl53l0x_last_read_ms[channel] = now;
 
-    if (timeout || distance == 65535) {
+    if (i2cStatus != 0) {
+      vl53l0x_range_status[channel] = 3;
+      Serial.print(F("I2C error "));
+      Serial.println(i2cStatus);
+    } else if (timeout || distance == 65535) {
+      vl53l0x_range_status[channel] = 1;
       Serial.println(F("read timeout"));
     } else {
+      vl53l0x_distance_mm[channel] = distance;
+      vl53l0x_range_status[channel] = 0;
       Serial.print(F("distance = "));
       Serial.print(distance);
       Serial.println(F(" mm"));
     }
 
-    delay(50);
+    break;
   }
 
   if (!anySensor && now - last_rescan > 10000) {
