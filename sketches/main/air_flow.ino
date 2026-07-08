@@ -1,14 +1,14 @@
 // -------------------- Air flow calibration --------------------
 // RPS -> passed air volume conversion table.
 // Edit these values after calibration. Conversion uses linear interpolation.
-#define AIR_FLOW_CALIBRATION_TABLE_SIZE 5
+#define AIR_FLOW_CALIBRATION_TABLE_SIZE 2
 
 const double AIR_FLOW_CALIBRATION_RPS[AIR_FLOW_CALIBRATION_TABLE_SIZE] = {
-  0.0, 5.0, 10.0, 20.0, 30.0
+  0.0, 100000.0
 };
 
 const double AIR_FLOW_CALIBRATION_VOLUME[AIR_FLOW_CALIBRATION_TABLE_SIZE] = {
-  0.0, 20.0, 45.0, 100.0, 160.0
+  0.0, 100000.0
 };
 
 // -------------------- Air flow sensor config --------------------
